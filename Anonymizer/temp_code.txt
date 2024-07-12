@@ -132,3 +132,131 @@ if uploaded_file is not None:
 
 #############################################################################################################################################
 
+#comp version1
+import spacy
+
+# Load the larger spaCy model with word vectors
+nlp = spacy.load("en_core_web_lg")
+
+# Example job description and employee skills
+job_description = "javascript,python"
+employee_skills = "reactJS,devlopment"
+
+# Function to calculate compatibility index based on contextual similarity
+def calculate_compatibility(job_description, employee_skills):
+    jd_doc = nlp(job_description.lower())  # Lowercase for case insensitivity
+    es_doc = nlp(employee_skills.lower())
+
+    # Calculate similarity between job description and employee skills
+    similarity_score = jd_doc.similarity(es_doc)
+
+    return similarity_score
+
+# Calculate compatibility index
+compatibility_index = calculate_compatibility(job_description, employee_skills)
+print(f"Compatibility Index: {compatibility_index:.2f}")
+
+############################################################################################################################
+#comp version2
+import streamlit as st
+import spacy
+
+# Load the larger spaCy model with word vectors
+nlp = spacy.load("en_core_web_lg")
+
+# Function to calculate compatibility index based on contextual similarity
+def calculate_compatibility(job_description, employee_skills):
+    jd_doc = nlp(job_description.lower())  # Lowercase for case insensitivity
+    es_doc = nlp(employee_skills.lower())
+    similarity_score = jd_doc.similarity(es_doc)
+    return similarity_score
+
+# Streamlit App
+st.title('Job Compatibility Checker')
+
+# Input for job description
+job_description = st.text_input('Enter Job Description:', 'javascript,python')
+
+# Input for employee skills
+employee_skills = st.text_input('Enter Employee Skills:', 'reactJS,development')
+
+# Button to calculate compatibility
+if st.button('Calculate Compatibility'):
+    # Calculate compatibility index
+    compatibility_index = calculate_compatibility(job_description, employee_skills)
+    st.write(f"Compatibility Index: {compatibility_index:.2f}")
+###############################################################################################################################
+#version3
+import streamlit as st
+from ibm_watson import AssistantV2
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+import spacy
+
+# Load the larger spaCy model with word vectors
+nlp = spacy.load("en_core_web_lg")
+
+# IBM Watson Assistant credentials
+api_key = "J9I5KtHcFuvHCdKFcVbenkA2xB7w6OmxbaEXCoZHB9Tn"
+url = "https://api.au-syd.assistant.watson.cloud.ibm.com/instances/35218a54-bfdb-43d6-80e1-995aa05a7d5d"
+assistant_id = "watsonx Assistant-a1"
+
+# Initialize Watson Assistant
+authenticator = IAMAuthenticator(api_key)
+assistant = AssistantV2(
+    version='2021-06-14',
+    authenticator=authenticator
+)
+assistant.set_service_url(url)
+
+# Example job description and employee skills
+job_description = "javascript,python"
+employee_skills = "reactJS,development"
+
+# Function to calculate compatibility index based on contextual similarity
+def calculate_compatibility(job_description, employee_skills):
+    jd_doc = nlp(job_description.lower())  # Lowercase for case insensitivity
+    es_doc = nlp(employee_skills.lower())
+
+    # Calculate similarity between job description and employee skills
+    similarity_score = jd_doc.similarity(es_doc)
+
+    return similarity_score
+
+# Function to interact with Watson Assistant
+def query_watson_assistant(user_input):
+    response = assistant.message(
+        assistant_id=assistant_id,
+        session_id='current_session',
+        input={
+            'message_type': 'text',
+            'text': user_input
+        }
+    ).get_result()
+    return response['output']['generic'][0]['text']  # Assuming simple response structure
+
+# Streamlit UI
+st.title('Skill Compatibility Calculator')
+
+# Input for user skills
+user_input = st.text_input('Enter your skills (comma-separated)', '')
+
+if st.button('Calculate Compatibility'):
+    if user_input:
+        # Query Watson Assistant for further processing
+        watson_response = query_watson_assistant(user_input)
+        st.info(f'Watson Assistant Response: {watson_response}')
+
+        # Compute compatibility index
+        compatibility_index = calculate_compatibility(job_description, user_input)
+        st.success(f'Compatibility Index: {compatibility_index:.2f}')
+    else:
+        st.warning('Please enter your skills first.')
+
+# Optional: Display job description and employee skills for reference
+st.subheader('Job Description:')
+st.write(job_description)
+
+st.subheader('Employee Skills:')
+st.write(employee_skills)
+
+###############################################################################################################################

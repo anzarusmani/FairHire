@@ -124,7 +124,7 @@ col1, col2 = st.columns(2)
 with col1:  
 
     # Streamlit app
-    st.title("PDF Anonymizer")
+    st.title("Resume Anonymizer")
 
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf", key="file_uploader")
 
