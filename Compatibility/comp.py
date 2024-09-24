@@ -1,16 +1,19 @@
 import streamlit as st
-import spacy
+from sentence_transformers import SentenceTransformer, util
 import plotly.graph_objects as go
 
-# Load the larger spaCy model with word vectors
-nlp = spacy.load("en_core_web_lg")
+# Load pre-trained Sentence-BERT model
+model = SentenceTransformer('bert-base-nli-mean-tokens')
 
-# Function to calculate compatibility index based on contextual similarity
-def calculate_compatibility(job_description, employee_skills):
-    jd_doc = nlp(job_description.lower())  # Lowercase for case insensitivity
-    es_doc = nlp(employee_skills.lower())
-    similarity_score = jd_doc.similarity(es_doc)
-    return similarity_score
+# Function to calculate compatibility index using Sentence-BERT
+def calculate_compatibility_sentence_bert(job_desc, skills):
+    job_desc_embedding = model.encode(job_desc, convert_to_tensor=True)
+    skills_embedding = model.encode(skills, convert_to_tensor=True)
+
+    # Calculate cosine similarity between job description and skills embeddings
+    compatibility_index = util.pytorch_cos_sim(job_desc_embedding, skills_embedding)[0][0].item()
+
+    return compatibility_index
 
 # Function to create a gauge chart
 def create_gauge_chart(value, title):
@@ -65,9 +68,9 @@ st.title('Job Compatibility Checker')
 
 # Predefined job descriptions
 job_descriptions = {
-    "Software Developer": "Proficient in JavaScript, Python, and ReactJS. Experience with web development and software design.",
-    "Data Scientist": "Skilled in Python, machine learning, data analysis, and statistical modeling. Familiar with data visualization tools.",
-    "Project Manager": "Experienced in project management, Agile methodologies, and team coordination. Proficient in project planning and execution."
+    "Graphic Designer": "Expert in visual communication and design principles, Proficient in Adobe Creative Suite, including Photoshop, Illustrator, and InDesign. Experience in creating branding and marketing materials.",
+    "Mechanical Engineer": "Specializes in the design, analysis, and manufacturing of mechanical systems. Proficient in CAD software and engineering analysis tools. Experience in product development and materials selection.",
+    "Content Writer": "Skilled in creating engaging and SEO-friendly content for various platforms. Proficient in research, copywriting, and editing. Experience in blog writing and social media management."
 }
 
 # Display predefined job descriptions
@@ -81,8 +84,8 @@ employee_skills = st.text_input('Enter Employee Skills:', 'reactJS, development'
 # Button to calculate compatibility
 if st.button('Calculate Compatibility'):
     for job_title, job_description in job_descriptions.items():
-        # Calculate compatibility index
-        compatibility_index = calculate_compatibility(job_description, employee_skills)
+        # Calculate compatibility index using Sentence-BERT
+        compatibility_index = calculate_compatibility_sentence_bert(job_description, employee_skills)
         st.write(f"Compatibility Index for {job_title}: {compatibility_index:.2f}")
 
         # Create and display gauge chart
