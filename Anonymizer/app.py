@@ -41,7 +41,7 @@ st.markdown(company_name_html, unsafe_allow_html=True)
 
 
 # Initialize the NER pipeline for Hugging Face Transformers
-ner_hf = pipeline("ner", grouped_entities=True)
+ner_hf = pipeline("ner", aggregation_strategy="simple")
 
 # Mapping of Hugging Face entity labels to anonymized terms
 label_to_anonymized_hf = {
