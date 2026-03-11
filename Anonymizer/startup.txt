@@ -1,1 +1,1 @@
-streamlit run Anonymizer/app.py
+python Anonymizer/app.py

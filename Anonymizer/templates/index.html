@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Anonymizer — FairHire</title>
+    <meta name="description" content="Upload a resume PDF, anonymize personal information, and view results as structured HTML or download as PDF.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ================================================================
+           DESIGN SYSTEM
+           ================================================================ */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.65);
+            --bg-glass: rgba(255, 255, 255, 0.04);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(99, 102, 241, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.1);
+            --badge-name: #f472b6;
+            --badge-name-bg: rgba(244, 114, 182, 0.15);
+            --badge-email: #38bdf8;
+            --badge-email-bg: rgba(56, 189, 248, 0.15);
+            --badge-phone: #a78bfa;
+            --badge-phone-bg: rgba(167, 139, 250, 0.15);
+            --badge-age: #fb923c;
+            --badge-age-bg: rgba(251, 146, 60, 0.15);
+            --badge-addr: #34d399;
+            --badge-addr-bg: rgba(52, 211, 153, 0.15);
+            --badge-org: #facc15;
+            --badge-org-bg: rgba(250, 204, 21, 0.15);
+            --badge-date: #2dd4bf;
+            --badge-date-bg: rgba(45, 212, 191, 0.15);
+            --radius: 16px;
+            --radius-sm: 8px;
+            --radius-xs: 6px;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ================================================================
+           LAYOUT
+           ================================================================ */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ================================================================
+           HEADER
+           ================================================================ */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header__brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent-light);
+        }
+
+        .header__brand svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .header__title {
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .header__subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* ================================================================
+           UPLOAD ZONE
+           ================================================================ */
+        .upload-zone {
+            border: 2px dashed var(--border-glass);
+            border-radius: var(--radius);
+            padding: 56px 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--border-hover);
+            background: rgba(99, 102, 241, 0.06);
+        }
+
+        .upload-zone:hover::before, .upload-zone.dragover::before {
+            opacity: 1;
+        }
+
+        .upload-zone__icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+            color: var(--accent-light);
+            opacity: 0.8;
+        }
+
+        .upload-zone__text {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .upload-zone__hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* File selected state */
+        .file-info {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-sm);
+            padding: 14px 20px;
+            margin-top: 20px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .file-info.visible { display: flex; }
+
+        .file-info__name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .file-info__name svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-light);
+            flex-shrink: 0;
+        }
+
+        .file-info__size {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn--primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .btn--primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        .btn--primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn--secondary {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+        }
+
+        .btn--secondary:hover {
+            border-color: var(--border-hover);
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* ================================================================
+           LOADING
+           ================================================================ */
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 60px 0;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .loading.visible { display: flex; }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-glass);
+            border-top-color: var(--accent-light);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading__text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .loading__detail {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ================================================================
+           ERROR
+           ================================================================ */
+        .error-msg {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            background: var(--error-bg);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: var(--radius-sm);
+            color: var(--error);
+            font-size: 14px;
+            margin-top: 20px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .error-msg.visible { display: flex; }
+
+        /* ================================================================
+           RESULTS
+           ================================================================ */
+        .results {
+            display: none;
+            margin-top: 40px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .results.visible { display: block; }
+
+        .results__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .results__title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .results__meta {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .results__actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Page card */
+        .page-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .page-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .page-card__header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-glass);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .page-card__header svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-light);
+        }
+
+        .page-card__body {
+            padding: 24px;
+        }
+
+        /* Section inside a page card */
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section:last-child { margin-bottom: 0; }
+
+        .section__heading {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--accent-light);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        .section__line {
+            font-size: 14px;
+            line-height: 1.75;
+            color: var(--text-secondary);
+            padding: 2px 0;
+        }
+
+        /* Anonymized badges */
+        .badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            vertical-align: baseline;
+        }
+
+        .badge--name   { background: var(--badge-name-bg);  color: var(--badge-name); }
+        .badge--email  { background: var(--badge-email-bg); color: var(--badge-email); }
+        .badge--phone  { background: var(--badge-phone-bg); color: var(--badge-phone); }
+        .badge--age    { background: var(--badge-age-bg);   color: var(--badge-age); }
+        .badge--addr   { background: var(--badge-addr-bg);  color: var(--badge-addr); }
+        .badge--org    { background: var(--badge-org-bg);   color: var(--badge-org); }
+        .badge--date   { background: var(--badge-date-bg);  color: var(--badge-date); }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 14px 20px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-sm);
+        }
+
+        .legend__label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        /* ================================================================
+           ANIMATIONS
+           ================================================================ */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
+        @media (max-width: 640px) {
+            .container { padding: 24px 16px 60px; }
+            .upload-zone { padding: 40px 20px; }
+            .results__header { flex-direction: column; align-items: flex-start; }
+            .page-card__body { padding: 16px; }
+        }
+
+        /* ================================================================
+           PRINT / PDF STYLES  (for html2pdf)
+           ================================================================ */
+        @media print {
+            body { background: white; color: #1e293b; }
+            body::before { display: none; }
+            .upload-zone, .actions, .results__actions, .header__brand, .header__subtitle,
+            .legend, .file-info, .loading, .error-msg { display: none !important; }
+            .page-card { border: 1px solid #e2e8f0; background: white; }
+            .section__heading { color: #6366f1; }
+            .section__line { color: #334155; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header__brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            FairHire
+        </div>
+        <h1 class="header__title">Resume Anonymizer</h1>
+        <p class="header__subtitle">Upload a resume PDF — personal information will be automatically redacted</p>
+    </header>
+
+    <!-- UPLOAD SECTION -->
+    <section id="uploadSection">
+        <div class="upload-zone" id="dropZone">
+            <svg class="upload-zone__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p class="upload-zone__text">Drop your resume PDF here, or click to browse</p>
+            <p class="upload-zone__hint">Supports PDF files up to 16 MB</p>
+            <input type="file" id="fileInput" accept=".pdf,application/pdf">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <span class="file-info__name">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span id="fileName">—</span>
+            </span>
+            <span class="file-info__size" id="fileSize">—</span>
+        </div>
+
+        <div class="error-msg" id="errorMsg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span id="errorText">Something went wrong.</span>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn--primary" id="anonymizeBtn" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Anonymize Resume
+            </button>
+        </div>
+    </section>
+
+    <!-- LOADING -->
+    <div class="loading" id="loadingSection">
+        <div class="spinner"></div>
+        <p class="loading__text">Anonymizing resume…</p>
+        <p class="loading__detail">Running NER model and applying redaction rules</p>
+    </div>
+
+    <!-- RESULTS -->
+    <section class="results" id="resultsSection">
+        <div class="results__header">
+            <div>
+                <h2 class="results__title">Anonymized Resume</h2>
+                <p class="results__meta" id="resultsMeta">— pages processed</p>
+            </div>
+            <div class="results__actions">
+                <button class="btn btn--secondary" id="downloadPdfBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download PDF
+                </button>
+                <button class="btn btn--secondary" id="resetBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                    </svg>
+                    New Upload
+                </button>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <span class="legend__label">Redacted tags:</span>
+            <span class="badge badge--name">[NAME]</span>
+            <span class="badge badge--email">[EMAIL]</span>
+            <span class="badge badge--phone">[PHONE]</span>
+            <span class="badge badge--age">[AGE]</span>
+            <span class="badge badge--addr">[ADDRESS]</span>
+            <span class="badge badge--org">[ORGANIZATION]</span>
+            <span class="badge badge--date">[DATE]</span>
+        </div>
+
+        <div id="pagesContainer"></div>
+    </section>
+</div>
+
+<script>
+// =====================================================================
+// DOM REFS
+// =====================================================================
+const dropZone      = document.getElementById('dropZone');
+const fileInput      = document.getElementById('fileInput');
+const fileInfo       = document.getElementById('fileInfo');
+const fileName       = document.getElementById('fileName');
+const fileSize       = document.getElementById('fileSize');
+const anonymizeBtn   = document.getElementById('anonymizeBtn');
+const loadingSection = document.getElementById('loadingSection');
+const errorMsg       = document.getElementById('errorMsg');
+const errorText      = document.getElementById('errorText');
+const resultsSection = document.getElementById('resultsSection');
+const resultsMeta    = document.getElementById('resultsMeta');
+const pagesContainer = document.getElementById('pagesContainer');
+const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+const resetBtn       = document.getElementById('resetBtn');
+const uploadSection  = document.getElementById('uploadSection');
+
+let selectedFile = null;
+let resultData   = null;
+
+// =====================================================================
+// DRAG & DROP
+// =====================================================================
+['dragenter', 'dragover'].forEach(evt =>
+    dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); })
+);
+['dragleave', 'drop'].forEach(evt =>
+    dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('dragover'); })
+);
+dropZone.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFile(files[0]);
+});
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+});
+
+// =====================================================================
+// FILE HANDLING
+// =====================================================================
+function handleFile(file) {
+    hideError();
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showError('Please select a PDF file.');
+        return;
+    }
+    if (file.size > 16 * 1024 * 1024) {
+        showError('File is too large. Maximum size is 16 MB.');
+        return;
+    }
+    selectedFile = file;
+    fileName.textContent = file.name;
+    fileSize.textContent = formatSize(file.size);
+    fileInfo.classList.add('visible');
+    anonymizeBtn.disabled = false;
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// =====================================================================
+// ANONYMIZE
+// =====================================================================
+anonymizeBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    hideError();
+    uploadSection.style.display = 'none';
+    loadingSection.classList.add('visible');
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+        const resp = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        loadingSection.classList.remove('visible');
+
+        if (!resp.ok) {
+            showError(data.error || 'Something went wrong.');
+            uploadSection.style.display = '';
+            return;
+        }
+
+        resultData = data;
+        renderResults(data);
+    } catch (err) {
+        loadingSection.classList.remove('visible');
+        showError('Network error — is the server running?');
+        uploadSection.style.display = '';
+    }
+});
+
+// =====================================================================
+// RENDER RESULTS
+// =====================================================================
+function renderResults(data) {
+    pagesContainer.innerHTML = '';
+    resultsMeta.textContent = `${data.total_pages} page${data.total_pages !== 1 ? 's' : ''} processed`;
+
+    data.pages.forEach((page, idx) => {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.innerHTML = `
+            <div class="page-card__header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Page ${idx + 1}
+            </div>
+            <div class="page-card__body">
+                ${page.sections.map(sec => `
+                    <div class="section">
+                        ${sec.heading ? `<div class="section__heading">${escapeHtml(sec.heading)}</div>` : ''}
+                        ${sec.lines.map(line => `<div class="section__line">${highlightBadges(escapeHtml(line))}</div>`).join('')}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        pagesContainer.appendChild(card);
+    });
+
+    resultsSection.classList.add('visible');
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function highlightBadges(html) {
+    const map = {
+        '[NAME]':         '<span class="badge badge--name">[NAME]</span>',
+        '[EMAIL]':        '<span class="badge badge--email">[EMAIL]</span>',
+        '[PHONE]':        '<span class="badge badge--phone">[PHONE]</span>',
+        '[AGE]':          '<span class="badge badge--age">[AGE]</span>',
+        '[ADDRESS]':      '<span class="badge badge--addr">[ADDRESS]</span>',
+        '[ORGANIZATION]': '<span class="badge badge--org">[ORGANIZATION]</span>',
+        '[DATE]':         '<span class="badge badge--date">[DATE]</span>',
+    };
+    for (const [tag, badge] of Object.entries(map)) {
+        html = html.replaceAll(escapeHtml(tag), badge);
+    }
+    return html;
+}
+
+// =====================================================================
+// DOWNLOAD PDF (server-side generation)
+// =====================================================================
+downloadPdfBtn.addEventListener('click', async () => {
+    if (!resultData) return;
+    downloadPdfBtn.disabled = true;
+    downloadPdfBtn.textContent = 'Generating…';
+
+    try {
+        const resp = await fetch('/download-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resultData),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json();
+            showError(err.error || 'PDF generation failed.');
+            return;
+        }
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'anonymized_resume.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        showError('Network error during PDF download.');
+    } finally {
+        downloadPdfBtn.disabled = false;
+        downloadPdfBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download PDF`;
+    }
+});
+
+// =====================================================================
+// RESET
+// =====================================================================
+resetBtn.addEventListener('click', () => {
+    selectedFile = null;
+    resultData = null;
+    fileInput.value = '';
+    fileInfo.classList.remove('visible');
+    anonymizeBtn.disabled = true;
+    resultsSection.classList.remove('visible');
+    pagesContainer.innerHTML = '';
+    uploadSection.style.display = '';
+    hideError();
+});
+
+// =====================================================================
+// HELPERS
+// =====================================================================
+function showError(msg) {
+    errorText.textContent = msg;
+    errorMsg.classList.add('visible');
+}
+
+function hideError() {
+    errorMsg.classList.remove('visible');
+}
+</script>
+
+</body>
+</html>
